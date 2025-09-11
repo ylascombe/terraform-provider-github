@@ -77,7 +77,9 @@ func resourceGithubActionsOrganizationSecretRepositoriesRead(d *schema.ResourceD
 		return err
 	}
 
-	selectedRepositoryIDs := []int64{}
+	repositoryID := d.Get("repository_id").(int64)
+	var found bool
+
 	opt := &github.ListOptions{
 		PerPage: maxPerPage,
 	}
@@ -88,17 +90,23 @@ func resourceGithubActionsOrganizationSecretRepositoriesRead(d *schema.ResourceD
 		}
 
 		for _, repo := range results.Repositories {
-			selectedRepositoryIDs = append(selectedRepositoryIDs, repo.GetID())
+			if repo.GetID() == repositoryID {
+				if err := d.Set("selected_repository_ids", []int64{repositoryID}); err != nil {
+					return err
+				}
+				found = true
+				break
+			}
 		}
-
-		if resp.NextPage == 0 {
+		if found || resp.NextPage == 0 {
 			break
 		}
 		opt.Page = resp.NextPage
 	}
-
-	if err = d.Set("selected_repository_ids", selectedRepositoryIDs); err != nil {
-		return err
+	if !found {
+		if err := d.Set("selected_repository_ids", []int64{}); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -114,8 +122,8 @@ func resourceGithubActionsOrganizationSecretRepositoriesDelete(d *schema.Resourc
 		return err
 	}
 
-	selectedRepositoryIDs := []int64{}
-	_, err = client.Actions.SetSelectedReposForOrgSecret(ctx, owner, d.Id(), selectedRepositoryIDs)
+	var selectedRepositoryID int64
+	_, err = client.Actions.SetSelectedRepoForOrgSecret(ctx, owner, d.Id(), selectedRepositoryID)
 	if err != nil {
 		return err
 	}

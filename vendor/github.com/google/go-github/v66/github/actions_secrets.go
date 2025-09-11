@@ -358,6 +358,19 @@ func (s *ActionsService) setSelectedReposForSecret(ctx context.Context, url stri
 	return s.client.Do(ctx, req, nil)
 }
 
+func (s *ActionsService) setSelectedRepoForSecret(ctx context.Context, url string, id int64) (*Response, error) {
+	type repoID struct {
+		SelectedID int64 `json:"selected_repository_id"`
+	}
+
+	req, err := s.client.NewRequest("PUT", url, repoID{SelectedID: id})
+	if err != nil {
+		return nil, err
+	}
+
+	return s.client.Do(ctx, req, nil)
+}
+
 // SetSelectedReposForOrgSecret sets the repositories that have access to a secret.
 //
 // GitHub API docs: https://docs.github.com/rest/actions/secrets#set-selected-repositories-for-an-organization-secret
@@ -375,6 +388,16 @@ func (s *ActionsService) addSelectedRepoToSecret(ctx context.Context, url string
 	}
 
 	return s.client.Do(ctx, req, nil)
+}
+
+// SetSelectedRepoForOrgSecret sets the repository to have access to a secret
+//
+// GitHub API docs: https://docs.github.com/en/rest/actions/secrets#add-selected-repository-to-an-organization-secret
+//
+//meta:operation PUT /orgs/{org}/actions/secrets/{secret_name}/repositories/{repository_id}
+func (s *ActionsService) SetSelectedRepoForOrgSecret(ctx context.Context, org, name string, id int64) (*Response, error) {
+	url := fmt.Sprintf("orgs/%v/actions/secrets/%v/repositories", org, name)
+	return s.setSelectedRepoForSecret(ctx, url, id)
 }
 
 // AddSelectedRepoToOrgSecret adds a repository to an organization secret.
